@@ -11,6 +11,12 @@ import (
 // ErrReset is returned when reading or writing on a reset stream.
 var ErrReset = errors.New("stream reset")
 
+type StreamErrorCode uint32
+
+type StreamError struct {
+	ErrorCode int
+}
+
 // MuxedStream is a bidirectional io pipe within a connection.
 type MuxedStream interface {
 	io.Reader
@@ -56,6 +62,10 @@ type MuxedStream interface {
 	// side to hang up and go away.
 	Reset() error
 
+	// ResetWithError closes both ends of the stream with errCode. The errCode is sent
+	// to the peer.
+	ResetWithError(errCode StreamErrorCode) error
+
 	SetDeadline(time.Time) error
 	SetReadDeadline(time.Time) error
 	SetWriteDeadline(time.Time) error
@@ -74,6 +84,10 @@ type MuxedStream interface {
 type MuxedConn interface {
 	// Close closes the stream muxer and the the underlying net.Conn.
 	io.Closer
+
+	// CloseWithError closes the connection with errCode. The errCode is sent
+	// to the peer.
+	CloseWithError(errCode ConnErrorCode) error
 
 	// IsClosed returns whether a connection is fully closed, so it can
 	// be garbage collected.

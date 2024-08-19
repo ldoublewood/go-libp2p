@@ -39,6 +39,10 @@ func (s *stream) Reset() error {
 	return s.yamux().Reset()
 }
 
+func (s *stream) ResetWithError(errCode network.StreamErrorCode) error {
+	panic("not implemented")
+}
+
 func (s *stream) CloseRead() error {
 	return s.yamux().CloseRead()
 }

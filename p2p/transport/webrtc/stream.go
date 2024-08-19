@@ -160,6 +160,10 @@ func (s *stream) Reset() error {
 	return errors.Join(closeReadErr, cancelWriteErr)
 }
 
+func (s *stream) ResetWithError(errCode network.StreamErrorCode) error {
+	panic("not implemented")
+}
+
 func (s *stream) closeForShutdown(closeErr error) {
 	defer s.cleanup()
 

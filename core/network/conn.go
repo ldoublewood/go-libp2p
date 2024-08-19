@@ -11,6 +11,8 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+type ConnErrorCode uint32
+
 // Conn is a connection to a remote peer. It multiplexes streams.
 // Usually there is no need to use a Conn directly, but it may
 // be useful to get information about the peer on the other side:
@@ -18,6 +20,10 @@ import (
 //	stream.Conn().RemotePeer()
 type Conn interface {
 	io.Closer
+
+	// CloseWithError closes the connection with errCode. The errCode is sent
+	// to the peer.
+	CloseWithError(errCode ConnErrorCode) error
 
 	ConnSecurity
 	ConnMultiaddrs

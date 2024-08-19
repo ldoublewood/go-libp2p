@@ -86,6 +86,10 @@ func (c *conn) Close() error {
 	return nil
 }
 
+func (c *conn) CloseWithError(errCode network.ConnErrorCode) error {
+	panic("not implemented")
+}
+
 func (c *conn) teardown() {
 	for _, s := range c.allStreams() {
 		s.Reset()

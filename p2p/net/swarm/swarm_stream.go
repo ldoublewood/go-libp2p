@@ -91,6 +91,10 @@ func (s *Stream) Reset() error {
 	return err
 }
 
+func (s *Stream) ResetWithError(errCode network.StreamErrorCode) error {
+	panic("not implemented")
+}
+
 func (s *Stream) closeAndRemoveStream() {
 	s.closeMx.Lock()
 	defer s.closeMx.Unlock()

@@ -23,6 +23,10 @@ func (c *conn) Close() error {
 	return c.yamux().Close()
 }
 
+func (c *conn) CloseWithError(errCode network.ConnErrorCode) error {
+	panic("not implemented")
+}
+
 // IsClosed checks if yamux.Session is in closed state.
 func (c *conn) IsClosed() bool {
 	return c.yamux().IsClosed()

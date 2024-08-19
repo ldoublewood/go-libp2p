@@ -62,6 +62,10 @@ func (c *Conn) Close() error {
 	return c.err
 }
 
+func (c *Conn) CloseWithError(errCode network.ConnErrorCode) error {
+	panic("not implemented")
+}
+
 func (c *Conn) doClose() {
 	c.swarm.removeConn(c)
 
