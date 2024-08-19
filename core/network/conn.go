@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	ic "github.com/libp2p/go-libp2p/core/crypto"
@@ -12,6 +13,14 @@ import (
 )
 
 type ConnErrorCode uint32
+
+type ConnError struct {
+	ErrorCode uint32
+}
+
+func (c *ConnError) Error() string {
+	return fmt.Sprintf("connection closed: code: %d", c.ErrorCode)
+}
 
 // Conn is a connection to a remote peer. It multiplexes streams.
 // Usually there is no need to use a Conn directly, but it may

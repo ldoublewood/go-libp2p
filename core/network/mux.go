@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"time"
@@ -14,7 +15,16 @@ var ErrReset = errors.New("stream reset")
 type StreamErrorCode uint32
 
 type StreamError struct {
-	ErrorCode int
+	ErrorCode StreamErrorCode
+	Remote    bool
+}
+
+func (s *StreamError) Error() string {
+	return fmt.Sprintf("stream reset: code: %d", s.ErrorCode)
+}
+
+func (s *StreamError) Is(target error) bool {
+	return target == ErrReset
 }
 
 // MuxedStream is a bidirectional io pipe within a connection.

@@ -2,6 +2,7 @@ package libp2pquic
 
 import (
 	"errors"
+	"math"
 
 	"github.com/libp2p/go-libp2p/core/network"
 
@@ -18,20 +19,29 @@ type stream struct {
 
 var _ network.MuxedStream = &stream{}
 
+func parseStreamError(err error) error {
+	se := &quic.StreamError{}
+	if err != nil && errors.As(err, &se) {
+		code := se.ErrorCode
+		if code > math.MaxUint32 {
+			code = 0
+		}
+		err = &network.StreamError{
+			ErrorCode: network.StreamErrorCode(code),
+			Remote:    se.Remote,
+		}
+	}
+	return err
+}
+
 func (s *stream) Read(b []byte) (n int, err error) {
 	n, err = s.Stream.Read(b)
-	if err != nil && errors.Is(err, &quic.StreamError{}) {
-		err = network.ErrReset
-	}
-	return n, err
+	return n, parseStreamError(err)
 }
 
 func (s *stream) Write(b []byte) (n int, err error) {
 	n, err = s.Stream.Write(b)
-	if err != nil && errors.Is(err, &quic.StreamError{}) {
-		err = network.ErrReset
-	}
-	return n, err
+	return n, parseStreamError(err)
 }
 
 func (s *stream) Reset() error {
@@ -41,7 +51,9 @@ func (s *stream) Reset() error {
 }
 
 func (s *stream) ResetWithError(errCode network.StreamErrorCode) error {
-	panic("not implemented")
+	s.Stream.CancelRead(quic.StreamErrorCode(errCode))
+	s.Stream.CancelWrite(quic.StreamErrorCode(errCode))
+	return nil
 }
 
 func (s *stream) Close() error {
