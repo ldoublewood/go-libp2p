@@ -43,6 +43,7 @@ func DiscoverNAT(ctx context.Context) (*NAT, error) {
 	extIP, err := natInstance.GetExternalAddress()
 	if err == nil {
 		extAddr, _ = netip.AddrFromSlice(extIP)
+		fmt.Println(extAddr)
 	}
 
 	// Log the device addr.
