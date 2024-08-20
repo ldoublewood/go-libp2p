@@ -20,11 +20,14 @@ type stream struct {
 var _ network.MuxedStream = &stream{}
 
 func parseStreamError(err error) error {
+	if err == nil {
+		return err
+	}
 	se := &quic.StreamError{}
-	if err != nil && errors.As(err, &se) {
+	if errors.As(err, &se) {
 		code := se.ErrorCode
 		if code > math.MaxUint32 {
-			code = 0
+			code = reset
 		}
 		err = &network.StreamError{
 			ErrorCode: network.StreamErrorCode(code),

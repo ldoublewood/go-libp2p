@@ -35,6 +35,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -795,6 +796,77 @@ func TestConnClosedWhenRemoteCloses(t *testing.T) {
 			require.Eventually(t, func() bool {
 				return server.Network().Connectedness(client.ID()) == network.NotConnected
 			}, 5*time.Second, 50*time.Millisecond)
+		})
+	}
+}
+
+// TestStreamErrorCode tests correctness for resetting stream with errors
+func TestStreamErrorCode(t *testing.T) {
+	for _, tc := range transportsToTest {
+		t.Run(tc.Name, func(t *testing.T) {
+			if tc.Name != "QUIC" {
+				t.Skip("only implemented for QUIC")
+				return
+			}
+			server := tc.HostGenerator(t, TransportTestCaseOpts{})
+			client := tc.HostGenerator(t, TransportTestCaseOpts{NoListen: true})
+			defer server.Close()
+			defer client.Close()
+
+			checkError := func(err error, code network.StreamErrorCode, remote bool) {
+				t.Helper()
+				if err == nil {
+					t.Fatal("expected non nil error")
+				}
+				se := &network.StreamError{}
+				if errors.As(err, &se) {
+					require.Equal(t, se.ErrorCode, code)
+					require.Equal(t, se.Remote, remote)
+					return
+				}
+				t.Fatal("expected network.StreamError, got:", err)
+			}
+
+			errCh := make(chan error)
+			server.SetStreamHandler("/test", func(s network.Stream) {
+				defer s.Reset()
+				b := make([]byte, 10)
+				n, err := s.Read(b)
+				if !assert.NoError(t, err) {
+					return
+				}
+				_, err = s.Write(b[:n])
+				if !assert.NoError(t, err) {
+					return
+				}
+				_, err = s.Read(b)
+				errCh <- err
+			})
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			client.Peerstore().AddAddrs(server.ID(), server.Addrs(), peerstore.PermanentAddrTTL)
+			s, err := client.NewStream(ctx, server.ID(), "/test")
+			require.NoError(t, err)
+
+			_, err = s.Write([]byte("hello"))
+			require.NoError(t, err)
+
+			buf := make([]byte, 10)
+			n, err := s.Read(buf)
+			require.NoError(t, err)
+			require.Equal(t, []byte("hello"), buf[:n])
+
+			err = s.ResetWithError(42)
+			require.NoError(t, err)
+
+			_, err = s.Read(buf)
+			checkError(err, 42, false)
+
+			_, err = s.Write(buf)
+			checkError(err, 42, false)
+
+			err = <-errCh
+			checkError(err, 42, true)
 		})
 	}
 }

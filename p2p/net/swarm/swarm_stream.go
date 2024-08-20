@@ -92,7 +92,9 @@ func (s *Stream) Reset() error {
 }
 
 func (s *Stream) ResetWithError(errCode network.StreamErrorCode) error {
-	panic("not implemented")
+	err := s.stream.ResetWithError(errCode)
+	s.closeAndRemoveStream()
+	return err
 }
 
 func (s *Stream) closeAndRemoveStream() {
