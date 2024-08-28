@@ -15,6 +15,9 @@ type stream yamux.Stream
 var _ network.MuxedStream = &stream{}
 
 func parseResetError(err error) error {
+	if err == nil {
+		return err
+	}
 	if errors.Is(err, yamux.ErrStreamReset) {
 		se := &yamux.StreamError{}
 		if errors.As(err, &se) {
