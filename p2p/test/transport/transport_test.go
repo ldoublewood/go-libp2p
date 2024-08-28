@@ -804,8 +804,8 @@ func TestConnClosedWhenRemoteCloses(t *testing.T) {
 func TestStreamErrorCode(t *testing.T) {
 	for _, tc := range transportsToTest {
 		t.Run(tc.Name, func(t *testing.T) {
-			if tc.Name != "QUIC" {
-				t.Skip("only implemented for QUIC")
+			if tc.Name != "QUIC" && tc.Name != "TCP / TLS / Yamux" {
+				t.Skipf("skipping: %s, only implemented for QUIC", tc.Name)
 				return
 			}
 			server := tc.HostGenerator(t, TransportTestCaseOpts{})

@@ -1,6 +1,7 @@
 package yamux
 
 import (
+	"errors"
 	"time"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -13,22 +14,24 @@ type stream yamux.Stream
 
 var _ network.MuxedStream = &stream{}
 
+func parseResetError(err error) error {
+	if errors.Is(err, yamux.ErrStreamReset) {
+		se := &yamux.StreamError{}
+		if errors.As(err, &se) {
+			return &network.StreamError{Remote: se.Remote, ErrorCode: network.StreamErrorCode(se.ErrorCode)}
+		}
+	}
+	return err
+}
+
 func (s *stream) Read(b []byte) (n int, err error) {
 	n, err = s.yamux().Read(b)
-	if err == yamux.ErrStreamReset {
-		err = network.ErrReset
-	}
-
-	return n, err
+	return n, parseResetError(err)
 }
 
 func (s *stream) Write(b []byte) (n int, err error) {
 	n, err = s.yamux().Write(b)
-	if err == yamux.ErrStreamReset {
-		err = network.ErrReset
-	}
-
-	return n, err
+	return n, parseResetError(err)
 }
 
 func (s *stream) Close() error {
@@ -40,7 +43,7 @@ func (s *stream) Reset() error {
 }
 
 func (s *stream) ResetWithError(errCode network.StreamErrorCode) error {
-	panic("not implemented")
+	return s.yamux().ResetWithError(uint32(errCode))
 }
 
 func (s *stream) CloseRead() error {
