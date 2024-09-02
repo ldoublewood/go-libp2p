@@ -133,7 +133,7 @@ func (c *connection) Close() error {
 }
 
 func (c *connection) CloseWithError(errCode network.ConnErrorCode) error {
-	panic("not implemented")
+	return c.Close()
 }
 
 // closeWithError is used to Close the connection when the underlying DTLS connection fails

@@ -79,7 +79,7 @@ func (c *conn) Close() error {
 }
 
 func (c *conn) CloseWithError(errCode network.ConnErrorCode) error {
-	panic("not implemented")
+	return c.Close()
 }
 
 func (c *conn) IsClosed() bool           { return c.session.Context().Err() != nil }
