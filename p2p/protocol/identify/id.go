@@ -1074,11 +1074,16 @@ func filterAddrs(addrs []ma.Multiaddr, remote ma.Multiaddr) []ma.Multiaddr {
 		return addrs
 	case manet.IsPrivateAddr(remote):
 		return ma.FilterAddrs(addrs, func(a ma.Multiaddr) bool { return !manet.IsIPLoopback(a) })
-	case manet.IsPublicAddr(remote):
+	case manet.IsPublicAddr(remote) && !isRelayAddress(remote):
 		return ma.FilterAddrs(addrs, manet.IsPublicAddr)
 	default:
 		return addrs
 	}
+}
+
+func isRelayAddress(a ma.Multiaddr) bool {
+	_, err := a.ValueForProtocol(ma.P_CIRCUIT)
+	return err == nil
 }
 
 func trimHostAddrList(addrs []ma.Multiaddr, maxSize int) []ma.Multiaddr {
