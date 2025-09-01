@@ -73,7 +73,7 @@ type activeHolePunch struct {
 func NewTransport(key ic.PrivKey, connManager *quicreuse.ConnManager, psk pnet.PSK, gater connmgr.ConnectionGater, rcmgr network.ResourceManager) (tpt.Transport, error) {
 	if len(psk) > 0 {
 		log.Error("QUIC doesn't support private networks yet.")
-		return nil, errors.New("QUIC doesn't support private networks yet")
+		//return nil, errors.New("QUIC doesn't support private networks yet")
 	}
 	localPeer, err := peer.IDFromPrivateKey(key)
 	if err != nil {
