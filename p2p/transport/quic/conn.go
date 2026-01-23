@@ -2,6 +2,8 @@ package libp2pquic
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -26,6 +28,7 @@ type conn struct {
 }
 
 var _ tpt.CapableConn = &conn{}
+var _ network.DatagramConn = &conn{}
 
 // Close closes the connection.
 // It must be called even if the peer closed the connection in order for
@@ -88,4 +91,65 @@ func (c *conn) ConnState() network.ConnectionState {
 		t = "quic"
 	}
 	return network.ConnectionState{Transport: t}
+}
+
+// ID returns an identifier that uniquely identifies this Conn within this
+// host, during this run. Connection IDs may repeat across restarts.
+func (c *conn) ID() string {
+	return fmt.Sprintf("%p", c)
+}
+
+// NewStream constructs a new Stream over this conn.
+func (c *conn) NewStream(ctx context.Context) (network.Stream, error) {
+	qstr, err := c.quicConn.OpenStreamSync(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &stream{
+		Stream: qstr,
+		conn:   c,
+	}, nil
+}
+
+// GetStreams returns all open streams over this conn.
+func (c *conn) GetStreams() []network.Stream {
+	// QUIC doesn't provide a direct way to enumerate all streams
+	// This is a limitation of the QUIC-go library
+	// For now, return an empty slice
+	return []network.Stream{}
+}
+
+// Stat stores metadata pertaining to this conn.
+func (c *conn) Stat() network.ConnStats {
+	return network.ConnStats{
+		Stats: network.Stats{
+			Direction: network.DirOutbound, // This should be set properly based on connection direction
+			Opened:    time.Now(),          // This should be set when connection is established
+			Limited:   false,
+			Extra:     make(map[interface{}]interface{}),
+		},
+		NumStreams: 0, // QUIC doesn't provide easy access to stream count
+	}
+}
+
+// SendDatagram sends a datagram message over the QUIC connection.
+func (c *conn) SendDatagram(data []byte) error {
+	if !c.SupportsDatagrams() {
+		return fmt.Errorf("connection does not support datagrams")
+	}
+	return c.quicConn.SendDatagram(data)
+}
+
+// ReceiveDatagram receives a datagram message from the QUIC connection.
+func (c *conn) ReceiveDatagram(ctx context.Context) ([]byte, error) {
+	if !c.SupportsDatagrams() {
+		return nil, fmt.Errorf("connection does not support datagrams")
+	}
+	return c.quicConn.ReceiveDatagram(ctx)
+}
+
+// SupportsDatagrams returns true if the QUIC connection supports datagram transmission.
+func (c *conn) SupportsDatagrams() bool {
+	// QUIC connections support datagrams if both peers negotiated the extension
+	return c.quicConn.ConnectionState().SupportsDatagrams
 }

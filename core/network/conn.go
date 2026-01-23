@@ -39,6 +39,25 @@ type Conn interface {
 	IsClosed() bool
 }
 
+// DatagramConn extends Conn to support datagram transmission.
+// This is particularly useful for VPN data where reliability mechanisms
+// like retransmission can hurt performance.
+type DatagramConn interface {
+	Conn
+
+	// SendDatagram sends a datagram message over the connection.
+	// Returns an error if the connection doesn't support datagrams.
+	SendDatagram(data []byte) error
+
+	// ReceiveDatagram receives a datagram message from the connection.
+	// Returns the received data and any error.
+	// This is a blocking call that waits for incoming datagrams.
+	ReceiveDatagram(ctx context.Context) ([]byte, error)
+
+	// SupportsDatagrams returns true if this connection supports datagram transmission.
+	SupportsDatagrams() bool
+}
+
 // ConnectionState holds information about the connection.
 type ConnectionState struct {
 	// The stream multiplexer used on this connection (if any). For example: /yamux/1.0.0
