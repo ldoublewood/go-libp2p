@@ -376,6 +376,11 @@ func (t *transport) Close() error {
 	return nil
 }
 
+// SupportsDatagrams returns true since QUIC supports datagram transmission.
+func (t *transport) SupportsDatagrams() bool {
+	return true
+}
+
 func (t *transport) CloseVirtualListener(l *virtualListener) error {
 	t.listenersMu.Lock()
 	defer t.listenersMu.Unlock()

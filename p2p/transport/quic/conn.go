@@ -23,6 +23,9 @@ type conn struct {
 	remotePeerID    peer.ID
 	remotePubKey    ic.PubKey
 	remoteMultiaddr ma.Multiaddr
+	
+	// Datagram support
+	datagramConn *datagramConn
 }
 
 func (c *conn) As(target any) bool {
@@ -52,6 +55,9 @@ func (c *conn) CloseWithError(errCode network.ConnErrorCode) error {
 
 func (c *conn) closeWithError(errCode quic.ApplicationErrorCode, errString string) error {
 	c.transport.removeConn(c.quicConn)
+	if c.datagramConn != nil {
+		c.datagramConn.Close()
+	}
 	err := c.quicConn.CloseWithError(errCode, errString)
 	c.scope.Done()
 	return err
@@ -110,4 +116,24 @@ func (c *conn) ConnState() network.ConnectionState {
 		t = "quic"
 	}
 	return network.ConnectionState{Transport: t}
+}
+
+// AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
+func (c *conn) AsDatagramConn() network.DatagramConn {
+	if c.datagramConn == nil {
+		c.datagramConn = newDatagramConn(
+			c.quicConn,
+			c.localPeer,
+			c.remotePeerID,
+			c.remotePubKey,
+			c.localMultiaddr,
+			c.remoteMultiaddr,
+		)
+	}
+	return c.datagramConn
+}
+
+// SupportsDatagrams returns true since QUIC supports datagrams.
+func (c *conn) SupportsDatagrams() bool {
+	return true
 }
