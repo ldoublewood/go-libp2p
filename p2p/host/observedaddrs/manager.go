@@ -24,7 +24,7 @@ var log = logging.Logger("observedaddrs")
 // ActivationThresh is the minimum number of observers required for an observed address
 // to be considered valid. We may not advertise this address even if we have these many
 // observations if better observed addresses are available.
-var ActivationThresh = 4
+var ActivationThresh = 1
 
 var (
 	// observedAddrManagerWorkerChannelSize defines how many addresses can be enqueued
