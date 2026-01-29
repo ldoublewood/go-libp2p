@@ -25,9 +25,25 @@ type conn struct {
 	remoteMultiaddr ma.Multiaddr
 }
 
+// DatagramConn is an interface for connections that support datagram transmission.
+type DatagramConn interface {
+	// SendDatagram sends a message using a datagram.
+	// There is no delivery guarantee for datagram frames, they are not retransmitted if lost.
+	SendDatagram([]byte) error
+
+	// ReceiveDatagram gets a message received in a datagram.
+	ReceiveDatagram(context.Context) ([]byte, error)
+}
+
 func (c *conn) As(target any) bool {
 	if t, ok := target.(**quic.Conn); ok {
 		*t = c.quicConn
+		return true
+	}
+
+	// Allow type assertion to DatagramConn interface
+	if t, ok := target.(*DatagramConn); ok {
+		*t = c
 		return true
 	}
 
@@ -110,4 +126,16 @@ func (c *conn) ConnState() network.ConnectionState {
 		t = "quic"
 	}
 	return network.ConnectionState{Transport: t}
+}
+
+// SendDatagram sends a message using a QUIC datagram.
+// There is no delivery guarantee for DATAGRAM frames, they are not retransmitted if lost.
+// This is ideal for VPN packet transmission where low latency is more important than reliability.
+func (c *conn) SendDatagram(p []byte) error {
+	return c.quicConn.SendDatagram(p)
+}
+
+// ReceiveDatagram gets a message received in a QUIC datagram.
+func (c *conn) ReceiveDatagram(ctx context.Context) ([]byte, error) {
+	return c.quicConn.ReceiveDatagram(ctx)
 }
