@@ -1,0 +1,3 @@
+
+#
+- libp2p目前封装的传输模型主要是stream的模式，但某些场景却是需要datagram模式，例如vpn。因此需要改造本项目以支持datagram模式
