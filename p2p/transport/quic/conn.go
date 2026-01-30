@@ -2,6 +2,7 @@ package libp2pquic
 
 import (
 	"context"
+	"fmt"
 
 	ic "github.com/libp2p/go-libp2p/core/crypto"
 	"github.com/libp2p/go-libp2p/core/network"
@@ -25,6 +26,14 @@ type conn struct {
 	remoteMultiaddr ma.Multiaddr
 }
 
+// DatagramCapableConn extends the connection interface to support datagrams
+type DatagramCapableConn interface {
+	tpt.CapableConn
+	SendDatagram(data []byte) error
+	ReceiveDatagram(ctx context.Context) ([]byte, error)
+	DatagramSupported() bool
+}
+
 func (c *conn) As(target any) bool {
 	if t, ok := target.(**quic.Conn); ok {
 		*t = c.quicConn
@@ -35,6 +44,7 @@ func (c *conn) As(target any) bool {
 }
 
 var _ tpt.CapableConn = &conn{}
+var _ DatagramCapableConn = &conn{}
 
 // Close closes the connection.
 // It must be called even if the peer closed the connection in order for
@@ -110,4 +120,25 @@ func (c *conn) ConnState() network.ConnectionState {
 		t = "quic"
 	}
 	return network.ConnectionState{Transport: t}
+}
+
+// SendDatagram sends a datagram over the QUIC connection
+func (c *conn) SendDatagram(data []byte) error {
+	if !c.DatagramSupported() {
+		return fmt.Errorf("datagram not supported on this connection")
+	}
+	return c.quicConn.SendDatagram(data)
+}
+
+// ReceiveDatagram receives a datagram from the QUIC connection
+func (c *conn) ReceiveDatagram(ctx context.Context) ([]byte, error) {
+	if !c.DatagramSupported() {
+		return nil, fmt.Errorf("datagram not supported on this connection")
+	}
+	return c.quicConn.ReceiveDatagram(ctx)
+}
+
+// DatagramSupported returns true if the connection supports datagrams
+func (c *conn) DatagramSupported() bool {
+	return c.quicConn.ConnectionState().SupportsDatagrams
 }
