@@ -2,8 +2,6 @@ package network
 
 import (
 	"context"
-	"net"
-	"time"
 
 	"github.com/libp2p/go-libp2p/core/peer"
 	ma "github.com/multiformats/go-multiaddr"
@@ -40,9 +38,11 @@ type DatagramConn interface {
 	RemoteMultiaddr() ma.Multiaddr
 }
 
-// DatagramCapableConn extends CapableConn with datagram capabilities.
+// DatagramCapableConn extends Conn with datagram capabilities.
+// This interface represents a connection that supports both regular streams
+// and datagram transmission.
 type DatagramCapableConn interface {
-	CapableConn
+	Conn
 	
 	// AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
 	// Returns nil if datagrams are not supported.
@@ -68,10 +68,9 @@ type DatagramNetwork interface {
 	GetDatagramConn(p peer.ID) DatagramConn
 }
 
-// DatagramTransport extends Transport with datagram support indication.
+// DatagramTransport represents a transport that supports datagram transmission.
+// This is a minimal interface that can be implemented by transports that support datagrams.
 type DatagramTransport interface {
-	Transport
-	
 	// SupportsDatagrams returns true if this transport supports datagram transmission.
 	SupportsDatagrams() bool
 }
