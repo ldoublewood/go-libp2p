@@ -14,7 +14,7 @@ import (
 // datagramHost extends BasicHost with datagram capabilities
 type datagramHost struct {
 	*BasicHost
-	
+
 	handlerMu sync.RWMutex
 	handler   network.DatagramHandler
 }
@@ -104,10 +104,11 @@ func (dh *datagramHost) SetDatagramHandler(handler network.DatagramHandler) {
 	dh.handlerMu.Lock()
 	dh.handler = handler
 	dh.handlerMu.Unlock()
-	
+
 	// Set handler on all existing datagram-capable connections
 	for _, conn := range dh.Network().Conns() {
-		if dcConn, ok := conn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
+		capabledConn := conn.GetCapableConn()
+		if dcConn, ok := capabledConn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
 			if dgConn := dcConn.AsDatagramConn(); dgConn != nil {
 				dgConn.SetDatagramHandler(handler)
 			}
@@ -120,36 +121,38 @@ func (dh *datagramHost) SendDatagram(ctx context.Context, p peer.ID, data []byte
 	if dgConn := dh.GetDatagramConn(p); dgConn != nil {
 		return dgConn.SendDatagram(ctx, data)
 	}
-	
+
 	// No existing connection, try to establish one
 	conn, err := dh.Network().DialPeer(ctx, p)
 	if err != nil {
 		return err
 	}
-	
-	if dcConn, ok := conn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
+
+	capabledConn := conn.GetCapableConn()
+	if dcConn, ok := capabledConn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
 		dgConn := dcConn.AsDatagramConn()
 		if dgConn != nil {
 			// Set the global handler on the new connection
 			dh.handlerMu.RLock()
 			handler := dh.handler
 			dh.handlerMu.RUnlock()
-			
+
 			if handler != nil {
 				dgConn.SetDatagramHandler(handler)
 			}
-			
+
 			return dgConn.SendDatagram(ctx, data)
 		}
 	}
-	
+
 	return ErrDatagramNotSupported
 }
 
 func (dh *datagramHost) GetDatagramConn(p peer.ID) network.DatagramConn {
 	conns := dh.Network().ConnsToPeer(p)
 	for _, conn := range conns {
-		if dcConn, ok := conn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
+		capabledConn := conn.GetCapableConn()
+		if dcConn, ok := capabledConn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
 			if dgConn := dcConn.AsDatagramConn(); dgConn != nil {
 				return dgConn
 			}
