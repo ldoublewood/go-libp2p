@@ -201,7 +201,8 @@ type Swarm struct {
 
 	// stream handlers
 	streamh atomic.Pointer[network.StreamHandler]
-
+	// datagram handlers
+	datagramh atomic.Pointer[network.DatagramHandler]
 	// dialing helpers
 	dsync   *dialSync
 	backf   DialBackoff
@@ -445,6 +446,12 @@ func (s *Swarm) addConn(tc transport.CapableConn, dir network.Direction) (*Conn,
 	c.notifyLk.Unlock()
 
 	c.start()
+
+	err := c.startDatagram()
+	if err != nil {
+		return nil, fmt.Errorf("start datagram :%w", err)
+	}
+
 	return c, nil
 }
 
@@ -461,6 +468,20 @@ func (s *Swarm) SetStreamHandler(handler network.StreamHandler) {
 // StreamHandler gets the handler for new streams.
 func (s *Swarm) StreamHandler() network.StreamHandler {
 	handler := s.streamh.Load()
+	if handler == nil {
+		return nil
+	}
+	return *handler
+}
+
+// SetDatagramHandler assigns the handler for new streams.
+func (s *Swarm) SetDatagramHandler(handler network.DatagramHandler) {
+	s.datagramh.Store(&handler)
+}
+
+// DatagrammHandler gets the handler for new streams.
+func (s *Swarm) DatagramHandler() network.DatagramHandler {
+	handler := s.datagramh.Load()
 	if handler == nil {
 		return nil
 	}

@@ -38,34 +38,36 @@ type DatagramConn interface {
 	RemoteMultiaddr() ma.Multiaddr
 }
 
-// DatagramCapableConn extends Conn with datagram capabilities.
-// This interface represents a connection that supports both regular streams
-// and datagram transmission.
-type DatagramCapableConn interface {
-	Conn
-	
-	// AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
-	// Returns nil if datagrams are not supported.
-	AsDatagramConn() DatagramConn
-	
-	// SupportsDatagrams returns true if the connection supports datagram transmission.
-	SupportsDatagrams() bool
-}
+//// DatagramCapableConn extends Conn with datagram capabilities.
+//// This interface represents a connection that supports both regular streams
+//// and datagram transmission.
+//type DatagramCapableConn interface {
+//	Conn
+//
+//	// AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
+//	// Returns nil if datagrams are not supported.
+//	AsDatagramConn() DatagramConn
+//
+//	// SupportsDatagrams returns true if the connection supports datagram transmission.
+//	SupportsDatagrams() bool
+//}
 
 // DatagramNetwork extends Network with datagram capabilities.
 type DatagramNetwork interface {
 	Network
-	
+
 	// SetDatagramHandler sets the global handler for incoming datagrams.
-	SetDatagramHandler(DatagramHandler)
-	
+	SetDatagramHandler(DatagramHandler) error
+
 	// SendDatagram sends a datagram to a specific peer.
 	// If no datagram-capable connection exists, it will attempt to create one.
 	SendDatagram(ctx context.Context, p peer.ID, data []byte) error
-	
+
 	// GetDatagramConn returns a datagram connection to the specified peer.
 	// Returns nil if no datagram-capable connection exists.
-	GetDatagramConn(p peer.ID) DatagramConn
+	GetDatagramConn(p peer.ID) (DatagramConn, error)
+
+	StatDatagramConn(p peer.ID) (total int, datagramTotal int, err error)
 }
 
 // DatagramTransport represents a transport that supports datagram transmission.

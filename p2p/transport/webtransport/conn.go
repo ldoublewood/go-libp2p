@@ -101,3 +101,8 @@ func (c *conn) As(target any) bool {
 	}
 	return false
 }
+
+// AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
+func (c *conn) AsDatagramConn() (network.DatagramConn, error) {
+	return nil, nil
+}

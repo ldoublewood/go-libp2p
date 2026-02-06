@@ -40,10 +40,10 @@ func newDatagramConn(qconn *quic.Conn, localPeer peer.ID, remotePeerID peer.ID, 
 		ctx:             ctx,
 		cancel:          cancel,
 	}
-	
+
 	// Start the receive loop if handler is set
 	go dc.receiveLoop()
-	
+
 	return dc
 }
 
@@ -55,7 +55,7 @@ func (dc *datagramConn) SendDatagram(ctx context.Context, data []byte) error {
 		return dc.ctx.Err()
 	default:
 	}
-	
+
 	return dc.quicConn.SendDatagram(data)
 }
 
@@ -67,7 +67,7 @@ func (dc *datagramConn) ReceiveDatagram(ctx context.Context) ([]byte, error) {
 		return nil, dc.ctx.Err()
 	default:
 	}
-	
+
 	return dc.quicConn.ReceiveDatagram(ctx)
 }
 
@@ -111,7 +111,7 @@ func (dc *datagramConn) receiveLoop() {
 			return
 		default:
 		}
-		
+
 		data, err := dc.quicConn.ReceiveDatagram(dc.ctx)
 		if err != nil {
 			if dc.ctx.Err() != nil {
@@ -120,13 +120,15 @@ func (dc *datagramConn) receiveLoop() {
 			log.Debug("Error receiving datagram", "err", err)
 			continue
 		}
-		
+
 		dc.handlerMu.RLock()
 		handler := dc.handler
 		dc.handlerMu.RUnlock()
-		
+
 		if handler != nil {
 			go handler(data, dc.remotePeerID, dc.localMultiaddr, dc.remoteMultiaddr)
+		} else {
+			log.Debug("receive datagram， but handle is not set yet", "remote", dc.remoteMultiaddr, "local", dc.LocalMultiaddr())
 		}
 	}
 }

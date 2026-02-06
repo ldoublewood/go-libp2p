@@ -62,6 +62,8 @@ type connection struct {
 
 	ctx    context.Context
 	cancel context.CancelFunc
+	// Datagram support
+	datagramConn *webrtcDatagramConn
 }
 
 func newConnection(
@@ -288,4 +290,28 @@ func (c *connection) detachChannel(ctx context.Context, dc *webrtc.DataChannel) 
 	case <-done:
 		return rwc, err
 	}
+}
+
+// AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
+func (c *connection) AsDatagramConn() (network.DatagramConn, error) {
+	if c.datagramConn == nil {
+		var err error
+		c.datagramConn, err = newWebRTCDatagramConn(
+			c.pc,
+			c.localPeer,
+			c.remotePeer,
+			c.remoteKey,
+			c.localMultiaddr,
+			c.remoteMultiaddr,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("new webrtc datagram conn: %w", err)
+		}
+	}
+	return c.datagramConn, nil
+}
+
+// SupportsDatagrams returns true since QUIC supports datagrams.
+func (c *connection) SupportsDatagrams() bool {
+	return true
 }

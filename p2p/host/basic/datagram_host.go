@@ -3,6 +3,7 @@ package basichost
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/libp2p/go-libp2p/core/network"
@@ -100,65 +101,87 @@ func (dh *datagramHost) CanDial(p peer.ID, addr ma.Multiaddr) bool {
 	return dh.BasicHost.Network().CanDial(p, addr)
 }
 
-func (dh *datagramHost) SetDatagramHandler(handler network.DatagramHandler) {
+func (dh *datagramHost) SetDatagramHandler(handler network.DatagramHandler) error {
 	dh.handlerMu.Lock()
 	dh.handler = handler
 	dh.handlerMu.Unlock()
 
 	// Set handler on all existing datagram-capable connections
 	for _, conn := range dh.Network().Conns() {
-		capabledConn := conn.GetCapableConn()
-		if dcConn, ok := capabledConn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
-			if dgConn := dcConn.AsDatagramConn(); dgConn != nil {
-				dgConn.SetDatagramHandler(handler)
-			}
+		dcConn, err := conn.AsDatagramConn()
+		if err != nil {
+			return fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
+		}
+		if dcConn != nil {
+			dcConn.SetDatagramHandler(handler)
 		}
 	}
+	return nil
 }
 
 func (dh *datagramHost) SendDatagram(ctx context.Context, p peer.ID, data []byte) error {
 	// Try to find an existing datagram-capable connection
-	if dgConn := dh.GetDatagramConn(p); dgConn != nil {
+	dgConn, err := dh.GetDatagramConn(p)
+	if err != nil {
+		return fmt.Errorf("cannot get DatagramConn from %v: %w", p, err)
+	}
+	if dgConn != nil {
 		return dgConn.SendDatagram(ctx, data)
 	}
 
 	// No existing connection, try to establish one
 	conn, err := dh.Network().DialPeer(ctx, p)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot dial Datagram from %v: %w", p, err)
+	}
+	dcConn, err := conn.AsDatagramConn()
+	if err != nil {
+		return fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
 	}
 
-	capabledConn := conn.GetCapableConn()
-	if dcConn, ok := capabledConn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
-		dgConn := dcConn.AsDatagramConn()
+	//conn newly dialed does not support datagram, try the whole host again
+	if dcConn == nil {
+		dgConn, err := dh.GetDatagramConn(p)
+		if err != nil {
+			return fmt.Errorf("cannot get DatagramConn from %v: %w", p, err)
+		}
 		if dgConn != nil {
-			// Set the global handler on the new connection
-			dh.handlerMu.RLock()
-			handler := dh.handler
-			dh.handlerMu.RUnlock()
-
-			if handler != nil {
-				dgConn.SetDatagramHandler(handler)
-			}
-
 			return dgConn.SendDatagram(ctx, data)
 		}
 	}
-
 	return ErrDatagramNotSupported
 }
 
-func (dh *datagramHost) GetDatagramConn(p peer.ID) network.DatagramConn {
+func (dh *datagramHost) StatDatagramConn(p peer.ID) (total int, datagramTotal int, err error) {
+	conns := dh.Network().ConnsToPeer(p)
+	total = len(conns)
+	datagramTotal = 0
+	for _, conn := range conns {
+		dcConn, err := conn.AsDatagramConn()
+		if err != nil {
+			return total, datagramTotal, fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
+		}
+		if dcConn == nil {
+			continue
+		}
+		datagramTotal++
+	}
+	return total, datagramTotal, nil
+}
+func (dh *datagramHost) GetDatagramConn(p peer.ID) (network.DatagramConn, error) {
 	conns := dh.Network().ConnsToPeer(p)
 	for _, conn := range conns {
-		capabledConn := conn.GetCapableConn()
-		if dcConn, ok := capabledConn.(network.DatagramCapableConn); ok && dcConn.SupportsDatagrams() {
-			if dgConn := dcConn.AsDatagramConn(); dgConn != nil {
-				return dgConn
-			}
+
+		dcConn, err := conn.AsDatagramConn()
+		if err != nil {
+			return nil, fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
 		}
+		if dcConn == nil {
+			continue
+		}
+		return dcConn, nil
 	}
-	return nil
+	return nil, nil
 }
 
 var ErrDatagramNotSupported = errors.New("datagram not supported by any available connection")

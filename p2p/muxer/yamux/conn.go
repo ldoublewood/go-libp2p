@@ -11,6 +11,10 @@ import (
 // conn implements mux.MuxedConn over yamux.Session.
 type conn yamux.Session
 
+func (c *conn) AsDatagramConn() (network.DatagramConn, error) {
+	return nil, nil
+}
+
 var _ network.MuxedConn = &conn{}
 
 func (c *conn) As(target any) bool {

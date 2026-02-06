@@ -23,7 +23,7 @@ type conn struct {
 	remotePeerID    peer.ID
 	remotePubKey    ic.PubKey
 	remoteMultiaddr ma.Multiaddr
-	
+
 	// Datagram support
 	datagramConn *datagramConn
 }
@@ -119,7 +119,7 @@ func (c *conn) ConnState() network.ConnectionState {
 }
 
 // AsDatagramConn returns a DatagramConn if the underlying transport supports datagrams.
-func (c *conn) AsDatagramConn() network.DatagramConn {
+func (c *conn) AsDatagramConn() (network.DatagramConn, error) {
 	if c.datagramConn == nil {
 		c.datagramConn = newDatagramConn(
 			c.quicConn,
@@ -130,7 +130,7 @@ func (c *conn) AsDatagramConn() network.DatagramConn {
 			c.remoteMultiaddr,
 		)
 	}
-	return c.datagramConn
+	return c.datagramConn, nil
 }
 
 // SupportsDatagrams returns true since QUIC supports datagrams.

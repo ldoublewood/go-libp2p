@@ -45,8 +45,9 @@ var _ network.Conn = &Conn{}
 func (c *Conn) As(target any) bool {
 	return c.conn.As(target)
 }
-func (c *Conn) GetCapableConn() transport.CapableConn {
-	return c.conn
+
+func (c *Conn) AsDatagramConn() (network.DatagramConn, error) {
+	return c.conn.AsDatagramConn()
 }
 
 func (c *Conn) IsClosed() bool {
@@ -124,6 +125,17 @@ func (c *Conn) removeStream(s *Stream) {
 	delete(c.streams.m, s)
 	c.streams.Unlock()
 	s.scope.Done()
+}
+
+func (c *Conn) startDatagram() error {
+	dc, err := c.AsDatagramConn()
+	if err != nil {
+		return fmt.Errorf("could not create DatagramConn: %w", err)
+	}
+	if dc != nil {
+		dc.SetDatagramHandler(c.swarm.DatagramHandler())
+	}
+	return nil
 }
 
 // listens for new streams.

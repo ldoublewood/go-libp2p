@@ -3,7 +3,6 @@ package network
 import (
 	"context"
 	"fmt"
-	"github.com/libp2p/go-libp2p/core/transport"
 	"io"
 
 	ic "github.com/libp2p/go-libp2p/core/crypto"
@@ -103,7 +102,7 @@ type Conn interface {
 	// You very likely do not need to use this method.
 	As(target any) bool
 
-	GetCapableConn() transport.CapableConn
+	AsDatagramConn() (DatagramConn, error)
 }
 
 // ConnectionState holds information about the connection.

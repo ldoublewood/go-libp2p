@@ -151,6 +151,8 @@ type MuxedConn interface {
 	//
 	// You very likely do not need to use this method.
 	As(target any) bool
+
+	AsDatagramConn() (DatagramConn, error)
 }
 
 // Multiplexer wraps a net.Conn with a stream multiplexing
