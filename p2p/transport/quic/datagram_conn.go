@@ -105,20 +105,36 @@ func (dc *datagramConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 func (dc *datagramConn) receiveLoop() {
+	log.Info("starting datagram receiveLoop", "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID, "local", dc.localMultiaddr, "remote", dc.remoteMultiaddr)
+	
 	for {
 		select {
 		case <-dc.ctx.Done():
+			log.Info("receiveLoop context cancelled, exiting", "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID)
 			return
 		default:
 		}
 
+		log.Debug("waiting for datagram", "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID)
 		data, err := dc.quicConn.ReceiveDatagram(dc.ctx)
 		if err != nil {
 			if dc.ctx.Err() != nil {
+				log.Info("exiting datagram conn receiveLoop", "err", dc.ctx.Err(), "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID)
 				return // Context cancelled, normal shutdown
 			}
-			log.Debug("Error receiving datagram", "err", err)
+			log.Warn("Error receiving datagram", "err", err, "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID, "local", dc.localMultiaddr, "remote", dc.remoteMultiaddr)
 			continue
+		}
+
+		log.Info("received datagram", "dataLen", len(data), "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID, "local", dc.localMultiaddr, "remote", dc.remoteMultiaddr)
+		
+		// Log first few bytes of data for debugging (be careful with sensitive data)
+		if len(data) > 0 {
+			previewLen := 32
+			if len(data) < previewLen {
+				previewLen = len(data)
+			}
+			log.Debug("datagram data preview", "dataPreview", data[:previewLen], "totalLen", len(data))
 		}
 
 		dc.handlerMu.RLock()
@@ -126,9 +142,18 @@ func (dc *datagramConn) receiveLoop() {
 		dc.handlerMu.RUnlock()
 
 		if handler != nil {
-			go handler(data, dc.remotePeerID, dc.localMultiaddr, dc.remoteMultiaddr)
+			log.Debug("dispatching datagram to handler", "dataLen", len(data), "remotePeer", dc.remotePeerID)
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Error("datagram handler panicked", "panic", r, "remotePeer", dc.remotePeerID, "dataLen", len(data))
+					}
+				}()
+				handler(data, dc.remotePeerID, dc.localMultiaddr, dc.remoteMultiaddr)
+				log.Debug("datagram handler completed", "dataLen", len(data), "remotePeer", dc.remotePeerID)
+			}()
 		} else {
-			log.Debug("receive datagram， but handle is not set yet", "remote", dc.remoteMultiaddr, "local", dc.LocalMultiaddr())
+			log.Warn("received datagram but handler is not set", "dataLen", len(data), "remote", dc.remoteMultiaddr, "local", dc.localMultiaddr, "remotePeer", dc.remotePeerID)
 		}
 	}
 }
