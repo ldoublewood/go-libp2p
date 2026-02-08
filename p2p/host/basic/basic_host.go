@@ -286,7 +286,7 @@ func NewHost(n network.Network, opts *HostOpts) (*BasicHost, error) {
 	}
 
 	n.SetStreamHandler(h.newStreamHandler)
-
+	//	n.SetDatagramHandler()
 	return h, nil
 }
 

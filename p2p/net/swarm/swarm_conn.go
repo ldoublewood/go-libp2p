@@ -133,6 +133,7 @@ func (c *Conn) startDatagram() error {
 		return fmt.Errorf("could not create DatagramConn: %w", err)
 	}
 	if dc != nil {
+		log.Info("datagram handler is set in connection", "conn", c)
 		dc.SetDatagramHandler(c.swarm.DatagramHandler())
 	}
 	return nil

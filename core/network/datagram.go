@@ -57,7 +57,7 @@ type DatagramNetwork interface {
 	Network
 
 	// SetDatagramHandler sets the global handler for incoming datagrams.
-	SetDatagramHandler(DatagramHandler) error
+	//SetDatagramHandler(DatagramHandler) error
 
 	// SendDatagram sends a datagram to a specific peer.
 	// If no datagram-capable connection exists, it will attempt to create one.

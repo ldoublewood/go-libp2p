@@ -142,6 +142,8 @@ type Network interface {
 	// remote side. This operation is thread-safe.
 	SetStreamHandler(StreamHandler)
 
+	SetDatagramHandler(DatagramHandler)
+
 	// NewStream returns a new stream to given peer p.
 	// If there is no connection to p, attempts to create one.
 	NewStream(context.Context, peer.ID) (Stream, error)

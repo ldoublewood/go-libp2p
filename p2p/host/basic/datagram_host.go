@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
-
 	"github.com/libp2p/go-libp2p/core/network"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/peerstore"
@@ -16,8 +14,8 @@ import (
 type datagramHost struct {
 	*BasicHost
 
-	handlerMu sync.RWMutex
-	handler   network.DatagramHandler
+	//handlerMu sync.RWMutex
+	//handler   network.DatagramHandler
 }
 
 // NewDatagramHost creates a new datagram-capable host
@@ -30,6 +28,11 @@ func NewDatagramHost(bh *BasicHost) network.DatagramNetwork {
 // Network interface methods - delegate to BasicHost's Network
 func (dh *datagramHost) SetStreamHandler(handler network.StreamHandler) {
 	dh.BasicHost.Network().SetStreamHandler(handler)
+}
+
+// Network interface methods - delegate to BasicHost's Network
+func (dh *datagramHost) SetDatagramHandler(handler network.DatagramHandler) {
+	dh.BasicHost.Network().SetDatagramHandler(handler)
 }
 
 func (dh *datagramHost) NewStream(ctx context.Context, p peer.ID) (network.Stream, error) {
@@ -101,23 +104,23 @@ func (dh *datagramHost) CanDial(p peer.ID, addr ma.Multiaddr) bool {
 	return dh.BasicHost.Network().CanDial(p, addr)
 }
 
-func (dh *datagramHost) SetDatagramHandler(handler network.DatagramHandler) error {
-	dh.handlerMu.Lock()
-	dh.handler = handler
-	dh.handlerMu.Unlock()
-
-	// Set handler on all existing datagram-capable connections
-	for _, conn := range dh.Network().Conns() {
-		dcConn, err := conn.AsDatagramConn()
-		if err != nil {
-			return fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
-		}
-		if dcConn != nil {
-			dcConn.SetDatagramHandler(handler)
-		}
-	}
-	return nil
-}
+//func (dh *datagramHost) SetDatagramHandler(handler network.DatagramHandler) error {
+//	dh.handlerMu.Lock()
+//	dh.handler = handler
+//	dh.handlerMu.Unlock()
+//
+//	// Set handler on all existing datagram-capable connections
+//	for _, conn := range dh.Network().Conns() {
+//		dcConn, err := conn.AsDatagramConn()
+//		if err != nil {
+//			return fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
+//		}
+//		if dcConn != nil {
+//			dcConn.SetDatagramHandler(handler)
+//		}
+//	}
+//	return nil
+//}
 
 func (dh *datagramHost) SendDatagram(ctx context.Context, p peer.ID, data []byte) error {
 	// Try to find an existing datagram-capable connection
