@@ -32,7 +32,7 @@ type webrtcDatagramConn struct {
 
 func newWebRTCDatagramConn(pc *webrtc.PeerConnection, localPeer peer.ID, remotePeerID peer.ID, remotePubKey ic.PubKey, localAddr, remoteAddr ma.Multiaddr) (*webrtcDatagramConn, error) {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Create a dedicated datagram channel
 	datagramChannel, err := pc.CreateDataChannel("libp2p-datagram", &webrtc.DataChannelInit{
 		Ordered: &[]bool{false}[0], // Unordered for datagram semantics
@@ -41,7 +41,7 @@ func newWebRTCDatagramConn(pc *webrtc.PeerConnection, localPeer peer.ID, remoteP
 		cancel()
 		return nil, err
 	}
-	
+
 	dc := &webrtcDatagramConn{
 		pc:              pc,
 		datagramChannel: datagramChannel,
@@ -53,18 +53,18 @@ func newWebRTCDatagramConn(pc *webrtc.PeerConnection, localPeer peer.ID, remoteP
 		ctx:             ctx,
 		cancel:          cancel,
 	}
-	
+
 	// Set up message handler
 	datagramChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
 		dc.handlerMu.RLock()
 		handler := dc.handler
 		dc.handlerMu.RUnlock()
-		
+
 		if handler != nil {
 			go handler(msg.Data, dc.remotePeerID, dc.localMultiaddr, dc.remoteMultiaddr)
 		}
 	})
-	
+
 	return dc, nil
 }
 
@@ -76,11 +76,11 @@ func (dc *webrtcDatagramConn) SendDatagram(ctx context.Context, data []byte) err
 		return dc.ctx.Err()
 	default:
 	}
-	
+
 	if dc.datagramChannel.ReadyState() != webrtc.DataChannelStateOpen {
 		return ErrDataChannelNotOpen
 	}
-	
+
 	return dc.datagramChannel.Send(data)
 }
 
@@ -98,7 +98,7 @@ func (dc *webrtcDatagramConn) SetDatagramHandler(handler network.DatagramHandler
 
 func (dc *webrtcDatagramConn) DatagramMTU() int {
 	// WebRTC data channel MTU is typically 16KB, but we use a conservative value
-	return 1200
+	return 4600
 }
 
 func (dc *webrtcDatagramConn) Close() error {
@@ -126,6 +126,6 @@ func (dc *webrtcDatagramConn) RemoteMultiaddr() ma.Multiaddr {
 }
 
 var (
-	ErrDataChannelNotOpen   = errors.New("data channel not open")
-	ErrReceiveNotSupported  = errors.New("direct receive not supported, use SetDatagramHandler")
+	ErrDataChannelNotOpen  = errors.New("data channel not open")
+	ErrReceiveNotSupported = errors.New("direct receive not supported, use SetDatagramHandler")
 )

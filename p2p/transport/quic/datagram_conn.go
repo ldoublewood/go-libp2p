@@ -80,7 +80,7 @@ func (dc *datagramConn) SetDatagramHandler(handler network.DatagramHandler) {
 func (dc *datagramConn) DatagramMTU() int {
 	// QUIC datagram MTU is typically around 1200 bytes to avoid fragmentation
 	// This should be dynamically determined based on path MTU discovery
-	return 1200
+	return 4200
 }
 
 func (dc *datagramConn) Close() error {
@@ -106,7 +106,7 @@ func (dc *datagramConn) RemoteMultiaddr() ma.Multiaddr {
 
 func (dc *datagramConn) receiveLoop() {
 	log.Info("starting datagram receiveLoop", "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID, "local", dc.localMultiaddr, "remote", dc.remoteMultiaddr)
-	
+
 	for {
 		select {
 		case <-dc.ctx.Done():
@@ -127,7 +127,7 @@ func (dc *datagramConn) receiveLoop() {
 		}
 
 		log.Info("received datagram", "dataLen", len(data), "localPeer", dc.localPeer, "remotePeer", dc.remotePeerID, "local", dc.localMultiaddr, "remote", dc.remoteMultiaddr)
-		
+
 		// Log first few bytes of data for debugging (be careful with sensitive data)
 		if len(data) > 0 {
 			previewLen := 32
