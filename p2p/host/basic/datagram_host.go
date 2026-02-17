@@ -132,26 +132,27 @@ func (dh *datagramHost) SendDatagram(ctx context.Context, p peer.ID, data []byte
 		return dgConn.SendDatagram(ctx, data)
 	}
 
-	// No existing connection, try to establish one
-	conn, err := dh.Network().DialPeer(ctx, p)
-	if err != nil {
-		return fmt.Errorf("cannot dial Datagram from %v: %w", p, err)
-	}
-	dcConn, err := conn.AsDatagramConn()
-	if err != nil {
-		return fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
-	}
-
-	//conn newly dialed does not support datagram, try the whole host again
-	if dcConn == nil {
-		dgConn, err := dh.GetDatagramConn(p)
-		if err != nil {
-			return fmt.Errorf("cannot get DatagramConn from %v: %w", p, err)
-		}
-		if dgConn != nil {
-			return dgConn.SendDatagram(ctx, data)
-		}
-	}
+	//
+	//// No existing connection, try to establish one
+	//conn, err := dh.Network().DialPeer(ctx, p)
+	//if err != nil {
+	//	return fmt.Errorf("cannot dial Datagram from %v: %w", p, err)
+	//}
+	//dcConn, err := conn.AsDatagramConn()
+	//if err != nil {
+	//	return fmt.Errorf("cannot create DatagramConn from %v: %w", conn.RemotePeer(), err)
+	//}
+	//
+	////conn newly dialed does not support datagram, try the whole host again
+	//if dcConn == nil {
+	//	dgConn, err := dh.GetDatagramConn(p)
+	//	if err != nil {
+	//		return fmt.Errorf("cannot get DatagramConn from %v: %w", p, err)
+	//	}
+	//	if dgConn != nil {
+	//		return dgConn.SendDatagram(ctx, data)
+	//	}
+	//}
 	return ErrDatagramNotSupported
 }
 
